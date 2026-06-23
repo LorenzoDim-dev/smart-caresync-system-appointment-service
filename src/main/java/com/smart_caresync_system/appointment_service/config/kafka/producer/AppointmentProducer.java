@@ -7,8 +7,13 @@ import com.smart_caresync_system.appointment_service.constant.KafkaTopics;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.support.KafkaHeaders;
+import org.springframework.messaging.Message;
+import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
+
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -19,7 +24,18 @@ public class AppointmentProducer {
 
     public void publishAppointmentScheduledEvent(AppointmentScheduledEvent appointmentScheduledEvent) {
 
-        kafkaTemplate.send(KafkaTopics.APPOINTMENT_SCHEDULED, appointmentScheduledEvent.getAppointmentId().toString(), appointmentScheduledEvent);
+        Message<AppointmentScheduledEvent> message = MessageBuilder.withPayload(appointmentScheduledEvent)
+                .setHeader(KafkaHeaders.TOPIC, KafkaTopics.APPOINTMENT_SCHEDULED)
+                .setHeader(KafkaHeaders.KEY, appointmentScheduledEvent.getAppointmentId().toString())
+                .setHeader("event-type", "AppointmentScheduledEvent")
+                .setHeader("event-version", "v1")
+                .setHeader("producer-service", "appointment-service")
+                .setHeader("correlation-id", UUID.randomUUID().toString())
+                .build();
+
+        kafkaTemplate.send(message);
+
+//        kafkaTemplate.send(KafkaTopics.APPOINTMENT_SCHEDULED, appointmentScheduledEvent.getAppointmentId().toString(), appointmentScheduledEvent);
 
         log.info("Appointment event sent : {}", appointmentScheduledEvent);
     }
